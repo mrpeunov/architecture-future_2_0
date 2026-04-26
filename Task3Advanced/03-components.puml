@@ -1,0 +1,43 @@
+@startuml
+!include <C4/C4_Component>
+
+LAYOUT_LEFT_RIGHT()
+
+title Будущее 2.0 - компоненты публикации data product в каталог
+
+Person(dataSteward, "Data steward", "Публикует data product и отвечает за его описание")
+
+Component_Ext(cleanZone, "Clean Zone", "Apache Iceberg", "Очищенные аналитические наборы данных из предыдущей диаграммы")
+
+Container_Boundary(dataProducts, "dbt Domain Data Products") {
+  Component(domainDataProduct, "Prepared Domain Data Product", "dbt model / table", "Готовая доменная витрина")
+  Component(productContract, "Data Product Contract", "YAML / dbt metadata", "Фиксирует схему, назначение, SLA и ограничения доступа")
+}
+
+Container_Boundary(catalogGovernance, "DataHub Catalog & Governance") {
+  Component(managementUi, "Data Product Management UI", "DataHub UI", "Единая точка публикации и сопровождения data products")
+  Component(publicationWorkflow, "Publication Workflow", "DataHub", "Проверяет карточку продукта и регистрирует его в каталоге")
+  Component(catalog, "Data Catalog", "DataHub", "Делает опубликованный data product доступным для поиска")
+  Component(policyRegistry, "Policy Registry", "DataHub", "Хранит правила доступа и ограничения потребления")
+  Component(ownershipRegistry, "Ownership & SLA Registry", "DataHub", "Хранит владельца, SLA и ответственность за поддержку")
+}
+
+Rel(dataSteward, managementUi, "Заполняет карточку и запускает публикацию")
+
+Rel(cleanZone, domainDataProduct, "Предоставляет очищенные данные")
+Rel(domainDataProduct, productContract, "Описывается контрактом")
+Rel(productContract, managementUi, "Передает описание продукта")
+Rel(managementUi, publicationWorkflow, "Передает карточку на публикацию")
+Rel(publicationWorkflow, catalog, "Регистрирует data product")
+Rel(publicationWorkflow, policyRegistry, "Публикует правила доступа")
+Rel(publicationWorkflow, ownershipRegistry, "Публикует владельца и SLA")
+
+Lay_R(cleanZone, domainDataProduct)
+Lay_D(domainDataProduct, productContract)
+Lay_R(productContract, managementUi)
+Lay_D(managementUi, publicationWorkflow)
+Lay_R(publicationWorkflow, catalog)
+Lay_R(catalog, policyRegistry)
+Lay_R(policyRegistry, ownershipRegistry)
+
+@enduml

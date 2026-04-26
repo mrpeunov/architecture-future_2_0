@@ -1,0 +1,45 @@
+@startuml
+!include <C4/C4_Component>
+
+LAYOUT_LEFT_RIGHT()
+
+title Будущее 2.0 - компоненты self-service analytics
+
+Person(businessUser, "Бизнес-пользователь", "Ищет данные, собирает отчеты и использует BI-дашборды")
+
+Container(dataProducts, "Domain Data Products", "dbt", "Предоставляет доменные витрины с описанием, SLA и правилами доступа")
+Container(catalogGovernance, "Catalog & Governance", "DataHub", "Хранит каталог, метаданные и политики доступа")
+
+Container_Boundary(selfService, "Self-Service Portal") {
+  Component(reportBuilderUi, "Report Builder UI", "React", "Позволяет собрать отчет из доступных срезов")
+  Component(dataProductSearch, "Data Product Search", "React / API", "Ищет data products и показывает их описание")
+  Component(accessControl, "Access Control", "Backend API", "Проверяет права пользователя перед выдачей данных")
+  Component(queryApi, "Query/API Layer", "Backend API", "Запрашивает данные из разрешенных data products")
+}
+
+Container_Boundary(biGateway, "BI") {
+  Component(powerBiDashboards, "Power BI Dashboards", "Power BI", "Показывает готовые управленческие отчеты")
+}
+
+Rel(businessUser, reportBuilderUi, "Собирает собственные отчеты")
+Rel(businessUser, powerBiDashboards, "Смотрит готовые дашборды")
+
+Rel(reportBuilderUi, dataProductSearch, "Выбирает доступные витрины")
+Rel(dataProductSearch, catalogGovernance, "Получает описание data products")
+Rel(reportBuilderUi, accessControl, "Запрашивает доступ к данным")
+Rel(accessControl, catalogGovernance, "Проверяет политики доступа")
+Rel(accessControl, queryApi, "Разрешает выполнение запроса")
+Rel(queryApi, dataProducts, "Получает данные из витрин")
+
+Rel(powerBiDashboards, catalogGovernance, "Получает политики и метаданные")
+Rel(powerBiDashboards, dataProducts, "Читает разрешенные витрины")
+
+Lay_R(businessUser, reportBuilderUi)
+Lay_D(reportBuilderUi, dataProductSearch)
+Lay_R(reportBuilderUi, accessControl)
+Lay_R(accessControl, queryApi)
+Lay_R(queryApi, dataProducts)
+Lay_D(dataProductSearch, catalogGovernance)
+Lay_D(powerBiDashboards, dataProducts)
+
+@enduml
