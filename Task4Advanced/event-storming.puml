@@ -1,0 +1,81 @@
+@startuml
+title Будущее 2.0 - Event Storming
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam sequence {
+  ArrowColor #4A5568
+  LifeLineBorderColor #CBD5E0
+  LifeLineBackgroundColor #F7FAFC
+  ParticipantBorderColor #4A5568
+  ParticipantBackgroundColor #EDF2F7
+  ParticipantFontColor #1A202C
+}
+
+participant "Patient & Clinic\nOperations" as Clinic
+participant "Clinical Records\n& Diagnostics" as Clinical
+participant "Medical AI\nServices" as AI
+participant "Fintech\nServices" as Fintech
+queue "Event Streaming\nPlatform" as Events
+participant "Data Products &\nSelf-Service Analytics" as Analytics
+participant "Governance\n& Access" as Governance
+participant "Legacy\nCompatibility" as Legacy
+
+== Пациентский поток ==
+Clinic -> Events : PatientRegistered
+Clinic -> Events : AppointmentScheduled
+Clinic -> Events : ClinicVisitCompleted
+Clinic -> Events : ClinicInvoiceIssued
+Events -> Analytics : данные для разрешенной аналитики
+Events -> Fintech : основание для оплаты или кредита
+
+== Медицинский контур ==
+Clinical -> Events : TreatmentPrescribed
+Clinical -> Events : DiagnosticStudyCompleted\n(только факт, без результатов)
+Clinical -> Events : MedicalRecordUpdated\n(без содержимого карты)
+Clinical -> Events : AiAnalysisRequested
+Events -> AI : событие для ИИ-анализа
+
+AI -> Events : AiAnalysisCompleted
+AI -> Events : AiRecommendationPrepared
+Events -> Clinical : результат для врача
+
+== Финтех ==
+Fintech -> Events : AccountOpened
+Fintech -> Events : PaymentCompleted
+Fintech -> Events : CreditContractCreated
+Fintech -> Events : CreditStatusChanged
+Events -> Analytics : финансовые data products
+
+== Data products и доступ ==
+Analytics -> Events : DataProductPublished
+Analytics -> Events : ReportCreated
+Analytics -> Events : DataProductDeprecated
+Events -> Governance : регистрация и контроль витрин
+
+Governance -> Events : AccessPolicyChanged
+Governance -> Events : EventSchemaRegistered
+Governance -> Events : DataProductCertified
+Events -> Clinic : схемы и политики
+Events -> Clinical : схемы и политики
+Events -> AI : схемы и политики
+Events -> Fintech : схемы и политики
+Events -> Analytics : схемы и политики
+
+== Миграция legacy ==
+Legacy -> Events : LegacyRecordImported
+Legacy -> Events : LegacyEventMapped
+Events -> Analytics : исторические данные через ACL
+
+note over Clinical, Analytics
+  Медицинские карты, истории болезни и результаты исследований
+  не публикуются в self-service аналитику.
+end note
+
+note over Legacy
+  Legacy Compatibility нужен как временный anti-corruption layer
+  для DWH, Camel и PowerBuilder.
+end note
+
+@enduml
