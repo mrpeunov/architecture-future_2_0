@@ -1,0 +1,67 @@
+@startuml
+!include <C4/C4_Component>
+
+LAYOUT_LEFT_RIGHT()
+
+title Будущее 2.0 - компоненты входящих событий до Kafka
+
+System_Boundary(externalSources, "Внешние источники данных и событий") {
+  Container_Ext(clinics, "Клиники", "Доменные системы", "Пациентский поток, записи, счета и операционные события без медкарт и исследований")
+  Container_Ext(fintech, "Финтех-сервисы", "Golang / Java", "Платежи, кредиты, счета и финансовая история")
+  Container_Ext(aiServices, "ИИ-сервисы", "Python", "События обработки и технические результаты без передачи медицинских исследований в аналитику")
+  Container_Ext(backOffice, "Головной офис", "Корпоративные системы", "Персонал, инвентаризация, управленческие и финансовые события")
+  Container_Ext(partners, "Новые партнеры", "Внешние системы", "Фармкомпании и производитель медоборудования")
+}
+
+System_Boundary(legacySystems, "Legacy-системы на этапе миграции") {
+  Container_Ext(legacyDwh, "SQL Server DWH 2008", "Microsoft SQL Server", "Исторические корпоративные данные и часть бизнес-логики")
+  Container_Ext(camelEsb, "Apache Camel ESB", "Integration Bus", "Старые интеграционные маршруты между системами")
+  Container_Ext(powerBuilderUi, "PowerBuilder UI", "Desktop UI", "Операторский интерфейс клиник поверх legacy-логики")
+}
+
+Container_Boundary(legacyAcl, "Legacy Anti-Corruption Layer") {
+  Component(legacyAdapter, "Legacy Adapter", "Spring Boot", "Читает DWH/Camel и скрывает старые контракты")
+  Component(legacyEventMapper, "Legacy Event Mapper", "Spring Boot", "Преобразует legacy-данные в доменные события")
+}
+
+Container_Boundary(ingestion, "Ingestion & Integration") {
+  Component(eventApi, "Event API", "REST / gRPC", "Принимает события от доменных сервисов и legacy ACL")
+  Component(batchIngestionApi, "Batch Ingestion API", "REST / SFTP / Scheduler", "Принимает пакетные загрузки и файловые обмены")
+  Component(schemaRegistry, "Schema Registry", "Confluent Schema Registry", "Хранит и проверяет схемы доменных событий")
+  Component(validationRouting, "Validation & Routing", "Kafka Connect / SMT", "Проверяет события и выбирает целевой Kafka topic")
+}
+
+Container_Boundary(eventBackbone, "Event Streaming Platform") {
+  Component(successTopics, "Successful Event Topics", "Apache Kafka", "Успешно принятые и проверенные события")
+  Component(errorTopics, "Error Event Topics", "Apache Kafka", "Ошибочные события для разбора и повторной обработки")
+}
+
+Rel(externalSources, eventApi, "Публикуют входящие события")
+
+Rel(legacyDwh, legacyAdapter, "Исторические данные и бизнес-правила")
+Rel(camelEsb, legacyAdapter, "Legacy-интеграции и маршруты")
+Rel(powerBuilderUi, legacyAdapter, "Операторские операции на время миграции")
+Rel(legacyAdapter, legacyEventMapper, "Передает legacy-записи")
+Rel(legacyEventMapper, eventApi, "Публикует нормализованные события")
+Rel(legacyEventMapper, batchIngestionApi, "Публикует нормализованные batch-наборы")
+Rel(externalSources, batchIngestionApi, "Партнерские пакетные файлы")
+
+Rel(eventApi, validationRouting, "Передает входящие события")
+Rel(batchIngestionApi, validationRouting, "Передает пакетные записи")
+Rel(validationRouting, schemaRegistry, "Проверяет контракты событий")
+Rel(validationRouting, successTopics, "Публикует валидные события")
+Rel(validationRouting, errorTopics, "Отправляет невалидные события")
+
+Lay_R(externalSources, eventApi)
+Lay_L(legacyDwh, legacyAdapter)
+Lay_D(camelEsb, legacyAdapter)
+Lay_D(powerBuilderUi, legacyAdapter)
+Lay_R(legacyAdapter, legacyEventMapper)
+Lay_R(legacyEventMapper, eventApi)
+Lay_D(eventApi, batchIngestionApi)
+Lay_R(eventApi, validationRouting)
+Lay_D(validationRouting, schemaRegistry)
+Lay_R(validationRouting, successTopics)
+Lay_D(validationRouting, errorTopics)
+
+@enduml

@@ -1,0 +1,57 @@
+@startuml
+!include <C4/C4_Container>
+
+LAYOUT_LEFT_RIGHT()
+
+title Будущее 2.0 - целевая контейнерная архитектура через 3 года
+
+Person(businessUser, "Бизнес-пользователь", "Получает отчеты и строит собственные аналитические срезы")
+Person(dataSteward, "Data steward", "Описывает data products и отвечает за качество данных домена")
+
+System_Ext(businessDomains, "Бизнес-домены и партнеры", "Клиники, финтех-сервисы, ИИ-сервисы, головной офис, фармкомпании и производитель медоборудования")
+
+System_Ext(legacySystems, "Legacy-системы", "SQL Server DWH 2008, Apache Camel ESB и PowerBuilder UI на этапе миграции")
+
+System_Boundary(target, "Целевая data mesh платформа") {
+  Container(legacyAcl, "Legacy Anti-Corruption Layer", "Java Spring Boot", "Временно подключает DWH и Camel, скрывая старые контракты")
+  Container(ingestion, "Ingestion & Integration", "REST API / Kafka Connect", "Принимает события от доменов, партнеров и legacy-моста")
+  Container(eventBackbone, "Event Streaming Platform", "Apache Kafka", "Обеспечивает слабосвязанное взаимодействие через события")
+  Container(processing, "Stream Processing", "Apache Flink", "Обогащает события и формирует аналитические потоки")
+  ContainerDb(lakehouse, "Data Lakehouse", "Apache Iceberg", "Хранит очищенные аналитические данные и историю")
+  Container(dataProducts, "Domain Data Products", "dbt", "Доменные витрины с владельцем, описанием, SLA и правилами доступа")
+  Container(catalogGovernance, "Catalog & Governance", "DataHub", "Хранит метаданные, федеративные правила и ограничения для data products")
+  Container(selfService, "Self-Service Portal", "React", "Позволяет сотрудникам находить данные и собирать отчеты")
+  Container(biGateway, "BI", "Power BI", "Предоставляет контролируемый доступ BI-системам и внешним API")
+}
+
+Rel(businessUser, selfService, "Строит отчеты")
+Rel(businessUser, biGateway, "Использует BI-дашборды")
+Rel(dataSteward, catalogGovernance, "Описывает data products и правила доступа")
+
+Rel(businessDomains, ingestion, "Входящие события от доменов и партнеров")
+
+
+Rel(legacySystems, legacyAcl, "Исторические данные и legacy-интеграции")
+Rel(legacyAcl, ingestion, "Нормализованные legacy-события")
+
+Rel(ingestion, eventBackbone, "Публикует события")
+Rel(eventBackbone, processing, "Передает потоки")
+Rel(processing, lakehouse, "Сохраняет очищенные данные")
+
+Rel(lakehouse, dataProducts, "Предоставляет данные для аналитических data products")
+Rel(dataProducts, catalogGovernance, "Публикует метаданные и получает правила")
+Rel(dataProducts, selfService, "Данные, описания и доступы для отчетов")
+Rel(dataProducts, biGateway, "Данные и политики доступа для BI/API")
+
+Lay_R(businessDomains, ingestion)
+Lay_L(legacySystems, legacyAcl)
+Lay_L(legacyAcl, ingestion)
+Lay_R(ingestion, eventBackbone)
+Lay_R(eventBackbone, processing)
+Lay_R(processing, lakehouse)
+Lay_R(lakehouse, dataProducts)
+Lay_D(dataProducts, catalogGovernance)
+Lay_R(dataProducts, selfService)
+Lay_R(dataProducts, biGateway)
+
+@enduml

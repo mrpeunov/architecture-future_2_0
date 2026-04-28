@@ -1,0 +1,36 @@
+@startuml
+!include <C4/C4_Component>
+
+LAYOUT_LEFT_RIGHT()
+
+title Будущее 2.0 - компоненты подготовки данных от Kafka до data products
+
+Container_Boundary(eventBackbone, "Apache Kafka Event Streaming Platform") {
+  Component(successTopics, "Successful Event Topics", "Apache Kafka", "Успешно принятые и проверенные события")
+}
+
+Container_Boundary(processing, "Apache Flink Stream Processing") {
+  Component(streamConsumer, "Stream Consumer", "Apache Flink", "Читает события из Kafka")
+  Component(streamTransformations, "Stream Transformations", "Apache Flink", "Очищает, нормализует и обогащает события")
+}
+
+Container_Boundary(lakehouse, "Apache Iceberg Data Lakehouse") {
+  Component(rawZone, "Raw Zone", "Apache Iceberg", "Хранит входящие события для истории и повторной обработки")
+  Component(cleanZone, "Clean Zone", "Apache Iceberg", "Хранит очищенные аналитические наборы данных")
+}
+
+Container(dataProducts, "Domain Data Products", "dbt", "Готовые доменные витрины для дальнейшей публикации и потребления")
+
+Rel(successTopics, streamConsumer, "Передает валидные события")
+Rel(streamConsumer, streamTransformations, "Передает поток на обработку")
+Rel(streamTransformations, rawZone, "Сохраняет исходную историю")
+Rel(streamTransformations, cleanZone, "Сохраняет очищенные данные")
+Rel(cleanZone, dataProducts, "Предоставляет данные для доменных витрин")
+
+Lay_D(successTopics, streamConsumer)
+Lay_D(streamConsumer, streamTransformations)
+Lay_D(streamTransformations, rawZone)
+Lay_R(rawZone, cleanZone)
+Lay_D(cleanZone, dataProducts)
+
+@enduml
