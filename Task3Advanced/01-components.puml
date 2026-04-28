@@ -26,6 +26,7 @@ Container_Boundary(legacyAcl, "Legacy Anti-Corruption Layer") {
 
 Container_Boundary(ingestion, "Ingestion & Integration") {
   Component(eventApi, "Event API", "REST / gRPC", "Принимает события от доменных сервисов и legacy ACL")
+  Component(batchIngestionApi, "Batch Ingestion API", "REST / SFTP / Scheduler", "Принимает пакетные загрузки и файловые обмены")
   Component(schemaRegistry, "Schema Registry", "Confluent Schema Registry", "Хранит и проверяет схемы доменных событий")
   Component(validationRouting, "Validation & Routing", "Kafka Connect / SMT", "Проверяет события и выбирает целевой Kafka topic")
 }
@@ -42,8 +43,11 @@ Rel(camelEsb, legacyAdapter, "Legacy-интеграции и маршруты")
 Rel(powerBuilderUi, legacyAdapter, "Операторские операции на время миграции")
 Rel(legacyAdapter, legacyEventMapper, "Передает legacy-записи")
 Rel(legacyEventMapper, eventApi, "Публикует нормализованные события")
+Rel(legacyEventMapper, batchIngestionApi, "Публикует нормализованные batch-наборы")
+Rel(externalSources, batchIngestionApi, "Партнерские пакетные файлы")
 
 Rel(eventApi, validationRouting, "Передает входящие события")
+Rel(batchIngestionApi, validationRouting, "Передает пакетные записи")
 Rel(validationRouting, schemaRegistry, "Проверяет контракты событий")
 Rel(validationRouting, successTopics, "Публикует валидные события")
 Rel(validationRouting, errorTopics, "Отправляет невалидные события")
@@ -54,6 +58,7 @@ Lay_D(camelEsb, legacyAdapter)
 Lay_D(powerBuilderUi, legacyAdapter)
 Lay_R(legacyAdapter, legacyEventMapper)
 Lay_R(legacyEventMapper, eventApi)
+Lay_D(eventApi, batchIngestionApi)
 Lay_R(eventApi, validationRouting)
 Lay_D(validationRouting, schemaRegistry)
 Lay_R(validationRouting, successTopics)
